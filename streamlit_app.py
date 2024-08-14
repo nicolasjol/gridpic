@@ -7,7 +7,7 @@ def create_printable_grid(input_img, output_path, input_size_inches, output_size
     input_size_pixels = (int(input_size_inches[0] * dpi), int(input_size_inches[1] * dpi))
     output_size_pixels = (int(output_size_inches[0] * dpi), int(output_size_inches[1] * dpi))
 
-    img = input_img.resize(input_size_pixels, Image.ANTIALIAS)
+    img = input_img.resize(input_size_pixels, Image.Resampling.LANCZOS)
     img_width, img_height = img.size
 
     output_img = Image.new("RGB", output_size_pixels, "white")
@@ -35,7 +35,12 @@ def main():
 
     if input_file:
         try:
-            img = Image.open(input_file)
+            # Save the uploaded file temporarily
+            input_path = os.path.join("temp_input_image.jpg")
+            with open(input_path, "wb") as f:
+                f.write(input_file.getbuffer())
+
+            img = Image.open(input_path)
             st.image(img, caption="Uploaded Image", use_column_width=True)
 
             st.write("### Specify Image and Output Sizes")
@@ -60,6 +65,7 @@ def main():
 
                     st.success("Grid generated successfully!")
                     st.image(output_path, caption="Generated Image", use_column_width=True)
+                    
                     with open(output_path, "rb") as file:
                         btn = st.download_button(
                             label="Download Image",
@@ -67,8 +73,18 @@ def main():
                             file_name="output.jpg",
                             mime="image/jpeg"
                         )
+
+                    # Delete the generated output file after it's downloaded or displayed
+                    if os.path.exists(output_path):
+                        os.remove(output_path)
+
                 except ValueError:
                     st.error("Please enter valid numerical values for sizes.")
+                finally:
+                    # Clean up the input file
+                    if os.path.exists(input_path):
+                        os.remove(input_path)
+                        st.info("Temporary files cleaned up.")
 
         except UnidentifiedImageError:
             st.error("The uploaded file is not a valid image. Please upload a valid image file.")
